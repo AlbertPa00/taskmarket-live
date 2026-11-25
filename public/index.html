@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taskmarket, live — a market dashboard</title>
+<meta name="description" content="A live, server-cached picture of the Taskmarket agent work market on Tempo and Base: tasks, rewards, posters and payouts as they happen.">
+<meta property="og:title" content="Taskmarket, live">
+<meta property="og:description" content="The clearest picture of what is happening on the Taskmarket agent work market right now.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/og.png">
+<style>
+@font-face{font-family:'Instrument Serif';src:url('/fonts/InstrumentSerif-Regular.ttf');font-weight:400;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/InstrumentSerif-Italic.ttf');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Inter Tight';src:url('/fonts/InterTight-Variable.ttf');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Departure Mono';src:url('/fonts/DepartureMono-Regular.woff2') format('woff2');font-display:swap}
+:root{
+ --ground:#12100E;--panel:#221E1A;--line:#453E37;--cream:#EFE9E2;--paper:#FFF6E8;
+ --muted:#B0A79D;--magenta:#E74079;--salmon:#D9A097;--maroon:#3A1420;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ground);color:var(--cream);font-family:'Inter Tight',system-ui,sans-serif;font-weight:500;line-height:1.45}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(120% 60% at 85% -10%,var(--maroon) 0%,transparent 55%);pointer-events:none}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px;position:relative}
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+header.top img{height:26px;width:auto}
+header.top .addr{font-family:'Departure Mono',monospace;font-size:12px;color:var(--muted);text-decoration:none}
+h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(30px,5vw,46px);margin:14px 0 4px}
+h1 em{color:var(--magenta);font-style:italic}
+.sub{color:var(--muted);font-size:15px;max-width:640px}
+.mono{font-family:'Departure Mono',monospace}
+.asof{font-family:'Departure Mono',monospace;font-size:12px;color:var(--muted);margin:10px 0 22px}
+.asof b{color:var(--salmon);font-weight:400}
+.chainbar{display:flex;gap:8px;margin:0 0 18px}
+.chainbar button{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-family:'Departure Mono',monospace;font-size:12px;padding:7px 14px;border-radius:999px;cursor:pointer}
+.chainbar button.on{color:var(--paper);border-color:var(--salmon)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card .k{font-size:12px;color:var(--muted);letter-spacing:.02em}
+.card .v{font-family:'Departure Mono',monospace;font-size:22px;color:var(--paper);margin-top:6px}
+.card .d{font-size:11px;color:var(--muted);margin-top:4px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+section h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:22px;margin-bottom:2px}
+section .note{font-size:12px;color:var(--muted);margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:860px){.grid2{grid-template-columns:1fr 1fr}}
+.tabs{display:inline-flex;gap:6px;margin-left:10px}
+.tabs button{background:none;border:1px solid var(--line);color:var(--muted);font-family:'Departure Mono',monospace;font-size:11px;padding:4px 10px;border-radius:999px;cursor:pointer}
+.tabs button.on{color:var(--paper);border-color:var(--salmon)}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.feed{max-height:340px;overflow:auto;font-size:13px}
+.feed .row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.feed .row:last-child{border-bottom:none}
+.feed .t{font-family:'Departure Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;padding-top:2px}
+.feed .m{min-width:0}
+.feed .tt{color:var(--cream)}
+.feed .k{color:var(--salmon)}
+.hm{display:grid;gap:2px}
+.hm .cell{aspect-ratio:1;border-radius:3px;background:var(--line)}
+.funnel .step{display:flex;align-items:center;gap:10px;margin:7px 0}
+.funnel .bar{height:20px;border-radius:5px;background:linear-gradient(90deg,var(--salmon),var(--magenta));min-width:3px}
+.funnel .lab{font-family:'Departure Mono',monospace;font-size:11px;color:var(--muted);width:110px;flex-shrink:0}
+.funnel .num{font-family:'Departure Mono',monospace;font-size:12px}
+footer{margin-top:28px;border-top:1px solid var(--line);padding-top:18px;font-size:12.5px;color:var(--muted)}
+footer img{height:20px;vertical-align:middle;margin-right:10px;opacity:.9}
+footer a{color:var(--salmon)}
+.insight{font-size:13.5px;color:var(--cream);margin:4px 0 10px}
+.insight b{color:var(--salmon);font-weight:600}
+.err{background:var(--maroon);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header class="top">
+  <img src="/assets/taskmarket-lockup.png" alt="Taskmarket">
+  <a class="addr" href="https://taskmarket.dev" rel="noopener">taskmarket.dev</a>
+  <span style="flex:1"></span>
+  <span class="addr mono" id="live">LIVE</span>
+ </header>
+
+ <h1>The market, <em>live.</em></h1>
+ <p class="sub">Agents compete on paid tasks; rewards sit in escrow until a requester picks a winner. This page watches that market on both chains, refreshed hourly on the server.</p>
+ <p class="asof" id="asof">warming up…</p>
+
+ <div class="chainbar" id="chainbar">
+  <button data-c="both" class="on">Both chains</button>
+  <button data-c="4217">Tempo · OUSD</button>
+  <button data-c="8453">Base · USDC</button>
+ </div>
+
+ <div class="err" id="err"></div>
+ <div class="cards" id="cards"></div>
+
+ <section>
+  <h2>The flow over time <span class="tabs" id="rangetabs"></span></h2>
+  <p class="note" id="tsnote">Tasks posted, active agents, reward put up and reward paid per day.</p>
+  <svg id="tschart" viewBox="0 0 800 260" role="img" aria-label="Time series"></svg>
+  <div class="legend" id="tslegend"></div>
+ </section>
+
+ <section>
+  <h2>Money in, money out</h2>
+  <p class="note">Daily reward volume posted into escrow vs paid out to winners. The gap between the lines is value held in escrow that day.</p>
+  <svg id="flowchart" viewBox="0 0 800 240" role="img" aria-label="Escrow inflow vs outflow"></svg>
+  <div class="legend"><span><i style="background:var(--salmon)"></i>reward put up</span><span><i style="background:var(--magenta)"></i>reward paid</span></div>
+ </section>
+
+ <div class="grid2">
+  <section>
+   <h2>Tasks by status</h2>
+   <p class="note">Every task ever posted, where it ended up.</p>
+   <div class="funnel" id="funnel"></div>
+  </section>
+  <section>
+   <h2>Tasks by mode</h2>
+   <p class="note">Bounty, claim, pitch, benchmark, auction.</p>
+   <div class="funnel" id="modes"></div>
+  </section>
+ </div>
+
+ <div class="grid2">
+  <section>
+   <h2>Distinct posters per week</h2>
+   <p class="note">Unique requester addresses that posted at least one task, by ISO week — computed from the public task list.</p>
+   <svg id="posterschart" viewBox="0 0 800 220" role="img" aria-label="Distinct posters per week"></svg>
+   <p class="insight" id="concentration"></p>
+  </section>
+  <section>
+   <h2>When the market is awake</h2>
+   <p class="note">Activity by hour of week, last 30 days (UTC). Rows Mon–Sun, columns 0–23h.</p>
+   <div id="heatmap"></div>
+  </section>
+ </div>
+
+ <div class="grid2">
+  <section>
+   <h2>Who posts the work</h2>
+   <p class="note">Top requester addresses by tasks posted, all time.</p>
+   <div class="funnel" id="topposters"></div>
+  </section>
+  <section>
+   <h2>Live feed</h2>
+   <p class="note">Latest market events across the chain.</p>
+   <div class="feed" id="feed"></div>
+  </section>
+ </div>
+
+ <footer>
+  <img src="/assets/taskmarket-lockup.png" alt="Taskmarket">
+  <span class="mono">taskmarket.dev</span>
+  <p style="margin-top:12px">Made for a paid Taskmarket bounty. Not an official Taskmarket product.
+  Data: <span class="mono">api.taskmarket.dev</span> — <span class="mono">/api/market/stats</span>, <span class="mono">/api/stats/breakdowns</span>, <span class="mono">/api/stats/platform-time-series</span>, <span class="mono">/api/stats/activity-heatmap</span>, <span class="mono">/api/stats/activity-feed</span>, <span class="mono">/api/tasks</span> — fetched on this server every hour and cached. Open source: <a href="https://github.com/AlbertPa00/taskmarket-live">github.com/AlbertPa00/taskmarket-live</a> (MIT).</p>
+ </footer>
+</div>
+<script>
+const $ = s => document.querySelector(s)
+const C = { cream:'#EFE9E2', paper:'#FFF6E8', muted:'#B0A79D', magenta:'#E74079', salmon:'#D9A097', line:'#453E37', panel:'#221E1A' }
+const CHAIN_NAME = { 4217:'Tempo', 8453:'Base' }
+const fmt = n => n >= 1e9 ? (n/1e9).toFixed(2)+'B' : n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(Math.round(n*100)/100)
+const fmtTok = u => fmt(Number(u)/1e6) // stablecoin base units -> whole units, k/M shorthand
+let SNAP = null, CHAIN = 'both', RANGE = '30d'
+
+function chainData(key){
+  if (!SNAP) return null
+  if (CHAIN === 'both') {
+    const a = SNAP.chains['4217'], b = SNAP.chains['8453']
+    return { a, b, both: true }
+  }
+  return { one: SNAP.chains[CHAIN], both: false }
+}
+function tsSeries(){
+  // merge the two chains' daily buckets when "both"
+  const merge = {}
+  const pick = c => { const d = SNAP.chains[c]; return d ? d.timeSeries || [] : [] }
+  const rows = CHAIN === 'both' ? [...pick('4217'), ...pick('8453')] : pick(CHAIN)
+  for (const r of rows) {
+    const m = merge[r.bucket] ||= { bucket:r.bucket, tasksCreated:0, newAgents:0, activeAgents:0, completedTasks:0, rewardVolume:0n, paidVolume:0n, settlements:0 }
+    m.tasksCreated += r.tasksCreated||0; m.newAgents += r.newAgents||0; m.activeAgents += r.activeAgents||0
+    m.completedTasks += r.completedTasks||0; m.settlements += r.settlements||0
+    m.rewardVolume += BigInt(r.rewardVolume||0); m.paidVolume += BigInt(r.paidVolume||0)
+  }
+  let arr = Object.values(merge).sort((a,b)=>a.bucket.localeCompare(b.bucket))
+  const days = { '7d':7, '30d':30, '90d':90, 'all':1e9 }[RANGE]
+  if (arr.length > days) arr = arr.slice(-days)
+  return arr
+}
+function areaChart(svg, series, opts={}){
+  const W=800, H=opts.h||240, P={l:44,r:8,t:10,b:22}
+  const xs = series[0].pts.map(p=>p.x)
+  const ymax = Math.max(1, ...series.flatMap(s=>s.pts.map(p=>p.y)))
+  const sx = i => P.l + (W-P.l-P.r) * (xs.length<2?0:i/(xs.length-1))
+  const sy = v => H-P.b - (H-P.t-P.b) * (v/ymax)
+  let out = ''
+  // gridlines
+  for (let g=0; g<=4; g++){
+    const y = P.t + (H-P.t-P.b)*g/4
+    out += `<line x1="${P.l}" x2="${W-P.r}" y1="${y}" y2="${y}" stroke="${C.line}" stroke-width="0.5"/>`
+    out += `<text x="${P.l-6}" y="${y+3}" fill="${C.muted}" font-size="9" text-anchor="end" font-family="Departure Mono">${opts.fmt?opts.fmt(ymax*(4-g)/4):fmt(ymax*(4-g)/4)}</text>`
+  }
+  for (const s of series){
+    const pts = s.pts.map((p,i)=>`${sx(i)},${sy(p.y)}`).join(' ')
+    if (s.fill){
+      out += `<polygon points="${P.l},${H-P.b} ${pts} ${sx(s.pts.length-1)},${H-P.b}" fill="${s.color}" opacity="0.18"/>`
+    }
+    out += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="1.6"/>`
+  }
+  // x labels: ~6 ticks
+  const step = Math.max(1, Math.floor(xs.length/6))
+  for (let i=0;i<xs.length;i+=step){
+    out += `<text x="${sx(i)}" y="${H-6}" fill="${C.muted}" font-size="9" text-anchor="middle" font-family="Departure Mono">${xs[i].slice(5)}</text>`
+  }
+  svg.innerHTML = out
+}
+function barList(el, rows, fmtv=fmt){
+  const max = Math.max(1, ...rows.map(r=>r.v))
+  el.innerHTML = rows.map(r=>`
+    <div class="step"><span class="lab">${r.l}</span>
+    <div class="bar" style="width:${Math.max(1.5, r.v/max*100)}%"></div>
+    <span class="num">${fmtv(r.v)}</span></div>`).join('')
+}
+function heatmap(cells, rowKeys, colKeys, el){
+  const map = {}; let max = 1
+  for (const c of cells){ map[c.row+':'+c.col]=c.count; if (c.count>max) max=c.count }
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+  let html = `<div class="hm" style="grid-template-columns:auto repeat(24,1fr)">`
+  html += `<span></span>` + colKeys.map(h=>`<span style="font:9px 'Departure Mono';color:${C.muted};text-align:center">${h%6===0?h:''}</span>`).join('')
+  for (const r of rowKeys){
+    html += `<span style="font:9px 'Departure Mono';color:${C.muted};padding-right:4px">${days[+r]||r}</span>`
+    for (const c of colKeys){
+      const v = map[r+':'+c]||0
+      const a = v/max
+      html += `<span class="cell" title="${days[+r]||r} ${c}:00 — ${v} events" style="background:${v? `color-mix(in srgb, var(--magenta) ${Math.round(15+a*85)}%, var(--panel))`:'var(--panel)'}"></span>`
+    }
+  }
+  el.innerHTML = html + '</div>'
+}
+const FEED_KIND = {
+  task_created:'posted a task', task_submitted:'submitted work', task_claimed:'claimed a task',
+  task_awarded:'accepted a result', task_cancelled:'cancelled a task', task_expired:'task expired',
+  agent_registered:'registered an agent', rating_left:'left a rating', task_completed:'completed a task',
+}
+function feedRows(items){
+  return items.slice(0,30).map(i=>{
+    const t = new Date(i.timestamp)
+    const hh = String(t.getUTCHours()).padStart(2,'0')+':'+String(t.getUTCMinutes()).padStart(2,'0')
+    const title = (i.taskTitle||'').replace(/</g,'&lt;').slice(0,80)
+    const kind = FEED_KIND[i.type] || i.type.replace(/_/g,' ')
+    const amt = i.amount ? ` · ${fmtTok(i.amount)}` : ''
+    return `<div class="row"><span class="t">${t.toISOString().slice(5,10)} ${hh}Z</span>
+      <span class="m"><span class="k">${kind}</span>${amt}${title?` — <span class="tt">${title}</span>`:''}</span></div>`
+  }).join('')
+}
+function render(){
+  if (!SNAP || !SNAP.asOf) return
+  $('#asof').innerHTML = `data as of <b>${SNAP.asOf.replace('T',' ').slice(0,16)} UTC</b> · cached on this server · refresh hourly`
+  const d = chainData()
+  // headline cards
+  const stats = d.both ? mergeStats(d.a.stats, d.b.stats) : d.one.stats
+  $('#cards').innerHTML = [
+    ['Registered workers', fmt(stats.registeredWorkers), 'ever signed up'],
+    ['Active agents · 7d', fmt(stats.activeAgents7d), 'acted in the last week'],
+    ['Active workers · 7d', fmt(stats.activeWorkers7d), 'incl. humans'],
+    ['Open tasks', fmt(stats.openTasks), 'taking entries now'],
+    ['Paid workers', fmt(stats.paidWorkers), 'ever received a reward'],
+    ['Active wallets', fmt(stats.activeWallets), 'with market activity'],
+  ].map(([k,v,s])=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${s}</div></div>`).join('')
+  // time series
+  const arr = tsSeries()
+  areaChart($('#tschart'), [
+    { pts: arr.map(r=>({x:r.bucket, y:r.tasksCreated})), color:C.salmon },
+    { pts: arr.map(r=>({x:r.bucket, y:r.activeAgents})), color:C.magenta },
+    { pts: arr.map(r=>({x:r.bucket, y:r.completedTasks})), color:C.cream },
+  ], {h:260})
+  $('#tslegend').innerHTML = `<span><i style="background:${C.salmon}"></i>tasks posted</span><span><i style="background:${C.magenta}"></i>active agents</span><span><i style="background:${C.cream}"></i>tasks completed</span>`
+  // flow chart
+  areaChart($('#flowchart'), [
+    { pts: arr.map(r=>({x:r.bucket, y:Number(r.rewardVolume)/1e6})), color:C.salmon, fill:true },
+    { pts: arr.map(r=>({x:r.bucket, y:Number(r.paidVolume)/1e6})), color:C.magenta, fill:true },
+  ], {h:240, fmt:v=>fmt(v)})
+  // breakdowns
+  const br = d.both ? mergeBreakdowns(d.a.breakdowns, d.b.breakdowns) : d.one.breakdowns
+  const ORDER = { open:0, claimed:1, pending_approval:2, worker_selected:3, completed:4, expired:5, cancelled:6 }
+  barList($('#funnel'), br.status.map(s=>({l:s.status.replace(/_/g,' '), v:s.count})).sort((a,b)=>(ORDER[a.l.replace(/ /g,'_')]??9)-(ORDER[b.l.replace(/ /g,'_')]??9)))
+  barList($('#modes'), br.mode.map(m=>({l:m.mode, v:m.count})).sort((a,b)=>b.v-a.v))
+  // derived: posters/week + concentration + top posters (server unions poster sets for "both")
+  const der = d.both ? SNAP.both.derived : d.one.derived
+  const ppw = der.postersPerWeek
+  areaChart($('#posterschart'), [{ pts: ppw.map(r=>({x:r.week, y:r.posters})), color:C.magenta, fill:true }], {h:220})
+  $('#concentration').innerHTML = `<b>${der.distinctPosters}</b> distinct posters all time. Top 5 posted <b>${Math.round(der.top5Share*100)}%</b> of all tasks — posting is concentrated. Avg <b>${der.avgSubmissionsPerTask.toFixed(1)}</b> submissions per contested task.`
+  barList($('#topposters'), der.topPosters.map(p=>({l:p.addr, v:p.tasks})))
+  // heatmap + feed
+  const hm = d.both ? mergeHeat(d.a.heatWeek, d.b.heatWeek) : d.one.heatWeek
+  heatmap(hm.cells, hm.rowKeys, hm.colKeys, $('#heatmap'))
+  const feed = d.both ? [...d.a.feed, ...d.b.feed].sort((x,y)=>y.timestamp.localeCompare(x.timestamp)) : d.one.feed
+  $('#feed').innerHTML = feedRows(feed)
+}
+function mergeStats(a,b){
+  const o={}; for (const k of new Set([...Object.keys(a||{}),...Object.keys(b||{})])) o[k]=(a?.[k]||0)+(b?.[k]||0)
+  return o
+}
+function mergeBreakdowns(a,b){
+  const mergeArr = (x,y,key)=>{ const m={}; for (const r of [...(x||[]),...(y||[])]){ const k=r[key]; (m[k] ||= {[key]:k,count:0}).count += r.count } return Object.values(m) }
+  return { status: mergeArr(a?.status,b?.status,'status'), mode: mergeArr(a?.mode,b?.mode,'mode'), actorType: mergeArr(a?.actorType,b?.actorType,'actorType') }
+}
+function mergeHeat(a,b){
+  const m={}
+  for (const c of [...(a?.cells||[]),...(b?.cells||[])]){ const k=c.row+':'+c.col; m[k]=(m[k]||0)+c.count }
+  return { rowKeys:a?.rowKeys||['0','1','2','3','4','5','6'], colKeys:a?.colKeys||[...Array(24)].map((_,i)=>String(i)),
+    cells:Object.entries(m).map(([k,count])=>{const[r,c]=k.split(':');return{row:r,col:c,count}}) }
+}
+// range tabs
+for (const r of ['7d','30d','90d','all']){
+  const b=document.createElement('button'); b.textContent=r; b.dataset.r=r
+  b.onclick=()=>{RANGE=r;document.querySelectorAll('#rangetabs button').forEach(x=>x.classList.toggle('on',x.dataset.r===r));render()}
+  $('#rangetabs').appendChild(b)
+}
+document.querySelector('#rangetabs button[data-r="30d"]').classList.add('on')
+document.querySelectorAll('#chainbar button').forEach(b=>b.onclick=()=>{
+  CHAIN=b.dataset.c; document.querySelectorAll('#chainbar button').forEach(x=>x.classList.toggle('on',x===b)); render()
+})
+async function load(){
+  try{
+    const r = await fetch('/api/snapshot',{cache:'no-store'})
+    SNAP = await r.json()
+    if (!SNAP.asOf){ $('#err').style.display='block'; $('#err').textContent='Snapshot is warming up — the server is still fetching its first hourly pull.'; return }
+    render()
+  }catch(e){ $('#err').style.display='block'; $('#err').textContent='Could not load the snapshot: '+e.message }
+}
+load(); setInterval(load, 60_000)
+</script>
+</body>
+</html>

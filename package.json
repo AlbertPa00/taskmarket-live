@@ -1,0 +1,11 @@
+{
+  "name": "taskmarket-live",
+  "version": "1.0.0",
+  "description": "A live, server-cached market dashboard for taskmarket.dev (Tempo + Base). Built for a paid Taskmarket bounty; not an official Taskmarket product.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
