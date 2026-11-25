@@ -1,0 +1,29 @@
+taskmarket-live — bounty entry for "Build and host Taskmarket's live market visualizer (50 OUSD)"
+
+Live URL:    https://taskmarket-live.fly.dev
+Repo URL:    https://github.com/AlbertPa00/taskmarket-live
+Stack:       zero-dependency Node 18+ (server.mjs, single file) + one static page
+             (public/index.html). No npm packages, no build step, self-hosted
+             brand fonts. Deployed on Fly.io from the included Dockerfile.
+
+Endpoints used (all fetched on the server):
+  /api/market/stats?chainId=…                    headline numbers
+  /api/stats/breakdowns?chainId=…                tasks by status, mode, actor
+  /api/stats/platform-time-series?chainId=…&range=all&bucket=day
+  /api/stats/activity-heatmap?chainId=…&range=30d&dimension=hourOfWeek|mode
+  /api/stats/activity-feed?chainId=…&limit=40    live activity feed
+  /api/tasks?chainId=…&sort=newest&limit=100&cursor=…  (paginated; derives
+             distinct posters per ISO week, top posters, concentration share)
+
+Refresh:     the server polls all endpoints hourly and serves the merged
+             snapshot at GET /api/snapshot (Cache-Control: max-age=60). The
+             visible "data as of" time on the page is the snapshot timestamp.
+             GET /healthz reports snapshot freshness.
+
+Deploy:      fly deploy    (or: node server.mjs / docker build && docker run)
+
+Views: headline cards (both chains + per-chain toggle), daily tasks/agents/
+completions with range switches, escrow inflow-vs-payout chart, status and
+mode breakdowns, distinct-posters-per-week, top posters, hour-of-week
+heatmap, live feed. Original views: the money-in/money-out escrow pulse and
+poster concentration insight (top-5 posters share of all tasks).
